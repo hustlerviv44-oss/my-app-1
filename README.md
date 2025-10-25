@@ -1,9 +1,9 @@
-# Class Schedule App
+# Student Class Schedule App
   
 This is a project built with [Chef](https://chef.convex.dev) using [Convex](https://convex.dev) as its backend.
  You can find docs about Chef with useful information like how to deploy to production [here](https://docs.convex.dev/chef).
   
-This project is connected to the Convex deployment named [`tidy-bullfrog-731`](https://dashboard.convex.dev/d/tidy-bullfrog-731).
+This project is connected to the Convex deployment named [`friendly-ermine-116`](https://dashboard.convex.dev/d/friendly-ermine-116).
   
 ## Project structure
   

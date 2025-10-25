@@ -13,10 +13,7 @@ import type {
   FilterApi,
   FunctionReference,
 } from "convex/server";
-import type * as auth from "../auth.js";
-import type * as classes from "../classes.js";
 import type * as http from "../http.js";
-import type * as notifications from "../notifications.js";
 import type * as router from "../router.js";
 import type * as schedule from "../schedule.js";
 
@@ -29,10 +26,7 @@ import type * as schedule from "../schedule.js";
  * ```
  */
 declare const fullApi: ApiFromModules<{
-  auth: typeof auth;
-  classes: typeof classes;
   http: typeof http;
-  notifications: typeof notifications;
   router: typeof router;
   schedule: typeof schedule;
 }>;

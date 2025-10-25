@@ -1,28 +1,63 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
-import { authTables } from "@convex-dev/auth/server";
 
 const applicationTables = {
-  courses: defineTable({
-    userId: v.id("users"),
-    code: v.string(),
-    name: v.string(),
-    type: v.string(), // "Theory" or "Practical"
-    faculty: v.string(),
-  }).index("by_user_and_code", ["userId", "code"]),
-  
-  schedule: defineTable({
-    userId: v.id("users"),
-    dayOfWeek: v.number(), // 0 = Sunday, 1 = Monday, etc.
-    startTime: v.string(), // "08:00"
-    endTime: v.string(), // "10:55"
-    courseCode: v.string(),
+  schedules: defineTable({
+    academicYear: v.string(),
+    registeredCourses: v.array(v.object({
+      code: v.string(),
+      name: v.string(),
+      type: v.string(),
+      faculty: v.string(),
+    })),
+    classTimetable: v.object({
+      MONDAY: v.array(v.object({
+        start: v.string(),
+        end: v.string(),
+        code: v.string(),
+        typeNote: v.optional(v.string()),
+        room: v.string(),
+      })),
+      TUESDAY: v.array(v.object({
+        start: v.string(),
+        end: v.string(),
+        code: v.string(),
+        typeNote: v.optional(v.string()),
+        room: v.string(),
+      })),
+      WEDNESDAY: v.array(v.object({
+        start: v.string(),
+        end: v.string(),
+        code: v.string(),
+        typeNote: v.optional(v.string()),
+        room: v.string(),
+      })),
+      THURSDAY: v.array(v.object({
+        start: v.string(),
+        end: v.string(),
+        code: v.string(),
+        typeNote: v.optional(v.string()),
+        room: v.string(),
+      })),
+      FRIDAY: v.array(v.object({
+        start: v.string(),
+        end: v.string(),
+        code: v.string(),
+        typeNote: v.optional(v.string()),
+        room: v.string(),
+      })),
+    }),
+  }),
+  notifications: defineTable({
+    classCode: v.string(),
+    className: v.string(),
+    startTime: v.string(),
     room: v.string(),
-    typeNote: v.optional(v.string()), // For lab sessions
-  }).index("by_user_and_day", ["userId", "dayOfWeek"]),
+    scheduledFor: v.number(),
+    sent: v.boolean(),
+  }).index("by_scheduled_time", ["scheduledFor"]),
 };
 
 export default defineSchema({
-  ...authTables,
   ...applicationTables,
 });
