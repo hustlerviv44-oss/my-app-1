@@ -1,24 +1,24 @@
 <!doctype html>
 <html lang="en">
-  <link rel="manifest" href="/manifest.webmanifest">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="/src/index.css" />
+    <title>Chef</title> <meta property="og:image" content="/og-preview.png" />
 
-    <title>Chef</title>
+    <link rel="manifest" href="/manifest.webmanifest">
 
-    <meta property="og:image" content="/og-preview.png" />
   </head>
-<script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js', { scope: '/' })
-    })
-  }
-</script>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js', { scope: '/' })
+        })
+      }
+    </script>
   </body>
 </html>
