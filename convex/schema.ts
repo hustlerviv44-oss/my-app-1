@@ -47,7 +47,10 @@ const applicationTables = {
         room: v.string(),
       })),
     }),
+    // NOTE: Adding an index here is crucial for fetching the schedule, even if you don't use the default 'by_user' index.
+    // Assuming you have one main schedule document you fetch.
   }),
+  
   notifications: defineTable({
     classCode: v.string(),
     className: v.string(),
@@ -56,6 +59,12 @@ const applicationTables = {
     scheduledFor: v.number(),
     sent: v.boolean(),
   }).index("by_scheduled_time", ["scheduledFor"]),
+  
+  // --- NEW TABLE FOR FCM PUSH NOTIFICATIONS ---
+  fcm_tokens: defineTable({
+    token: v.string(),
+    // We add an index to make sure we don't save the same token twice
+  }).index("by_token", ["token"]),
 };
 
 export default defineSchema({

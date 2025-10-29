@@ -14,6 +14,7 @@
     "@convex-dev/auth": "^0.0.80",
     "clsx": "^2.1.1",
     "convex": "^1.24.2",
+    "firebase-admin": "^12.4.0", // Ensure this is present
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "sonner": "^2.0.3",
@@ -38,6 +39,18 @@
     "typescript": "~5.7.2",
     "typescript-eslint": "^8.24.1",
     "vite": "^6.2.0",
-    "vite-plugin-pwa": "^1.1.0"
+    "vite-plugin-pwa": "^0.20.0" // Ensure this is present
+  },
+  
+  // 💥 ADD THIS NEW CONVEX CONFIGURATION 💥
+  "convex": {
+    "bundles": {
+      "node": [
+        "./node_modules/firebase-admin/**"
+      ]
+    },
+    "skipBrowserBuild": [
+      "./node_modules/firebase-admin/**"
+    ]
   }
 }
