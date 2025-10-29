@@ -2,15 +2,77 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { Toaster, toast } from "sonner";
 import { useEffect, useState } from "react";
+import { initializeApp } from 'firebase/app';
+import { getMessaging, getToken } from 'firebase/messaging';
+
+// --- FIREBASE CONFIGURATION ---
+// 🚨 REPLACE THIS WITH YOUR ACTUAL FIREBASE WEB APP CONFIGURATION 🚨
+const firebaseConfig = {
+    apiKey: "YOUR_API_KEY", 
+    authDomain: "YOUR_AUTH_DOMAIN",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_STORAGE_BUCKET",
+    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+    appId: "YOUR_APP_ID"
+};
+
+// 🚨 REPLACE WITH YOUR VAPID PUBLIC KEY from Firebase Console (Cloud Messaging tab) 🚨
+const VAPID_KEY = "YOUR_VAPID_PUBLIC_KEY_HERE"; 
+
+let firebaseApp: any = null;
+
+function getFirebaseMessaging() {
+  if (!firebaseApp) {
+    firebaseApp = initializeApp(firebaseConfig);
+  }
+  return getMessaging(firebaseApp);
+}
+
+// Custom hook to handle push notification subscription logic
+function usePushSubscription() {
+  // We use api.fcm_tokens.saveToken which we planned to create.
+  // The red lines will disappear after npx convex dev runs and generates the api.d.ts file.
+  const saveTokenMutation = useMutation(api.fcm_tokens.saveToken as any); 
+
+  const subscribeUser = () => {
+    if (!('serviceWorker' in navigator)) {
+      console.error('Service Worker not supported. Cannot subscribe.');
+      return;
+    }
+
+    const messaging = getFirebaseMessaging();
+
+    // 1. Request permission from the user
+    Notification.requestPermission().then(permission => {
+      if (permission === 'granted') {
+        console.log('Notification permission granted.');
+
+        // 2. Get the unique FCM token for this device
+        getToken(messaging, { vapidKey: VAPID_KEY })
+          .then(token => {
+            console.log('FCM Token generated:', token);
+            // 3. Save the token to your Convex database
+            saveTokenMutation({ token }); 
+          })
+          .catch(err => console.error('Error getting FCM token:', err));
+
+      } else {
+        console.warn('Notification permission denied by user.');
+      }
+    });
+  };
+
+  return { subscribeUser }; 
+}
+
 
 export default function App() {
   const scheduleData = useQuery(api.schedule.getScheduleData);
   const initializeSchedule = useMutation(api.schedule.initializeSchedule);
   const scheduleNotification = useMutation(api.schedule.scheduleNotification);
-  const pendingNotifications = useQuery(api.schedule.getPendingNotifications);
-  const markNotificationSent = useMutation(api.schedule.markNotificationSent);
-
   const [currentTime, setCurrentTime] = useState(new Date());
+
+  const { subscribeUser } = usePushSubscription();
 
   // Update current time every minute
   useEffect(() => {
@@ -20,25 +82,17 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
-  // Initialize schedule data if it doesn't exist
+  // Initialize schedule data if it doesn't exist AND prompt for push notifications
   useEffect(() => {
     if (scheduleData === null) {
       initializeSchedule();
     }
-  }, [scheduleData, initializeSchedule]);
-
-  // Handle notifications
-  useEffect(() => {
-    if (pendingNotifications && pendingNotifications.length > 0) {
-      pendingNotifications.forEach((notification) => {
-        toast(`📚 Class Reminder`, {
-          description: `${notification.classCode} starts in 15 minutes at ${notification.room}`,
-          duration: 8000,
-        });
-        markNotificationSent({ notificationId: notification._id });
-      });
+    // Prompt for subscription after initial load
+    if (scheduleData !== undefined) {
+      // We will now call subscribeUser only if the user clicks the card
+      // subscribeUser(); 
     }
-  }, [pendingNotifications, markNotificationSent]);
+  }, [scheduleData, initializeSchedule, subscribeUser]);
 
   if (scheduleData === undefined) {
     return (
@@ -59,6 +113,7 @@ export default function App() {
           scheduleData={scheduleData} 
           currentTime={currentTime}
           scheduleNotification={scheduleNotification}
+          subscribeUser={subscribeUser} // <-- PASSING THE FUNCTION DOWN
         />
       </div>
       <Toaster 
@@ -101,10 +156,11 @@ function Header({ currentTime }: { currentTime: Date }) {
   );
 }
 
-function ScheduleView({ scheduleData, currentTime, scheduleNotification }: {
+function ScheduleView({ scheduleData, currentTime, scheduleNotification, subscribeUser }: { // <-- ADDED subscribeUser HERE
   scheduleData: any;
   currentTime: Date;
   scheduleNotification: any;
+  subscribeUser: () => void; // <-- ADDED TYPE HERE
 }) {
   if (!scheduleData) return null;
 
@@ -193,7 +249,7 @@ function ScheduleView({ scheduleData, currentTime, scheduleNotification }: {
     }
   };
 
-  // Schedule notifications for today's classes
+  // Schedule notifications for today's classes (This only schedules the *server* cron job)
   useEffect(() => {
     todaysClasses.forEach((classItem: any) => {
       const course = getCourseDetails(classItem.code);
@@ -206,6 +262,7 @@ function ScheduleView({ scheduleData, currentTime, scheduleNotification }: {
       // Schedule notification 15 minutes before
       const notificationTime = new Date(classDate.getTime() - 15 * 60 * 1000);
       
+      // Only schedule if the notification time is in the future
       if (notificationTime > currentTime) {
         scheduleNotification({
           classCode: classItem.code,
@@ -385,7 +442,71 @@ function ScheduleView({ scheduleData, currentTime, scheduleNotification }: {
             </div>
           </div>
         </div>
+        
+        {/* Subscription Card */}
+        <SubscriptionCard subscribeUser={subscribeUser} />
+
       </div>
+    </div>
+  );
+}
+
+function SubscriptionCard({ subscribeUser }: { subscribeUser: () => void }) {
+  const [status, setStatus] = useState('unknown');
+
+  useEffect(() => {
+    if ('Notification' in window) {
+      if (Notification.permission === 'granted') {
+        setStatus('granted');
+      } else if (Notification.permission === 'denied') {
+        setStatus('denied');
+      } else {
+        setStatus('default');
+      }
+    }
+  }, []);
+
+  const handleClick = () => {
+    subscribeUser();
+    setStatus('checking');
+    setTimeout(() => {
+        // Quick check after clicking (real status updates later)
+        if (Notification.permission === 'granted') {
+            setStatus('granted');
+        }
+    }, 1000);
+  };
+
+  return (
+    <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-5 space-y-4">
+      <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+        🔔 Push Notifications
+      </h3>
+      
+      {status === 'granted' && (
+        <p className="text-sm text-green-600 font-medium">
+          ✅ Subscribed! You will get reminders when the app is closed.
+        </p>
+      )}
+      {status === 'denied' && (
+        <p className="text-sm text-red-600 font-medium">
+          ❌ Blocked. Please check your browser settings to allow notifications.
+        </p>
+      )}
+      {(status === 'default' || status === 'unknown' || status === 'checking') && (
+        <p className="text-sm text-slate-600">
+          Get reminders 15 minutes before class starts, even when the app is closed.
+        </p>
+      )}
+
+      {(status === 'default' || status === 'unknown') && (
+        <button
+          onClick={handleClick}
+          className="w-full py-2 px-4 bg-purple-600 text-white font-semibold rounded-lg shadow-md hover:bg-purple-700 transition duration-150"
+        >
+          {status === 'checking' ? 'Processing...' : 'Enable Notifications'}
+        </button>
+      )}
     </div>
   );
 }

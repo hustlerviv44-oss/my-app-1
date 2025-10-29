@@ -13,6 +13,7 @@ import type {
   FilterApi,
   FunctionReference,
 } from "convex/server";
+import type * as fcm_tokens from "../fcm_tokens.js";
 import type * as http from "../http.js";
 import type * as notifications from "../notifications.js";
 import type * as router from "../router.js";
@@ -27,6 +28,7 @@ import type * as schedule from "../schedule.js";
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  fcm_tokens: typeof fcm_tokens;
   http: typeof http;
   notifications: typeof notifications;
   router: typeof router;
